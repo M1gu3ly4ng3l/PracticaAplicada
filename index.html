@@ -3,6 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte de Catástrofes - Login</title>
     <link rel="stylesheet" href="estilos.css">
 </head>
@@ -12,7 +13,7 @@
         <h2>Acceso a la Plataforma</h2>
         <p class="subtitulo">Sistema de Reporte de Catástrofes Colombia</p>
 
-        <form>
+        <form id="form-login">
             <div class="campo">
                 <label for="email">Correo Electrónico</label>
                 <input type="email" id="email" placeholder="ejemplo@correo.com" required>
@@ -23,9 +24,15 @@
                 <input type="password" id="password" placeholder="Tu contraseña" required>
             </div>
 
+            <p id="mensaje" class="mensaje"></p>
+
             <button type="submit">Ingresar</button>
         </form>
+
+        <p class="enlace-secundario">¿No tienes cuenta? <a href="registro.html">Regístrate</a></p>
+        <p class="enlace-secundario"><a href="reportes.html">Ver reportes sin iniciar sesión</a></p>
     </div>
 
+    <script type="module" src="js/login.js"></script>
 </body>
 </html>
