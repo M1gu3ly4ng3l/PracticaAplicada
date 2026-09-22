@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Catástrofes - Nuevo reporte</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body class="pagina-ancha">
+
+    <nav class="barra-nav">
+        <span class="marca-nav">Reporte de Catástrofes</span>
+        <div id="nav-sesion"></div>
+    </nav>
+
+    <div class="login-card">
+        <h2>Nuevo Reporte</h2>
+        <p class="subtitulo">Cuéntanos qué está pasando y dónde</p>
+
+        <form id="form-reportar">
+            <div class="campo">
+                <label for="tipo">Tipo</label>
+                <select id="tipo" required>
+                    <option value="" disabled selected>Selecciona una opción</option>
+                    <option value="lluvia">Lluvia</option>
+                    <option value="incendio">Incendio</option>
+                    <option value="terremoto">Terremoto</option>
+                    <option value="inundacion">Inundación</option>
+                    <option value="deslizamiento">Deslizamiento</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+
+            <div class="campo">
+                <label for="lugar">Lugar</label>
+                <input type="text" id="lugar" placeholder="Barrio, municipio o dirección" required>
+            </div>
+
+            <div class="campo">
+                <label for="fecha_hora">Fecha y hora del hecho</label>
+                <input type="datetime-local" id="fecha_hora" required>
+            </div>
+
+            <div class="campo">
+                <label for="imagen">Imagen (opcional)</label>
+                <input type="file" id="imagen" accept="image/*">
+            </div>
+
+            <p id="mensaje" class="mensaje"></p>
+
+            <button type="submit">Enviar reporte</button>
+        </form>
+    </div>
+
+    <script type="module" src="js/reportar.js"></script>
+</body>
+</html>
