@@ -125,7 +125,7 @@ body.pagina-ancha {
 /* ----- Barra superior ----- */
 .barra-nav {
     display: flex;
-    justify-content: space-between;   /* marca a la izquierda, sesión a la derecha */
+    justify-content: flex-end;        /* botón de sesión en la esquina derecha */
     align-items: center;
     gap: 16px;
     padding: 12px 24px;
@@ -135,11 +135,6 @@ body.pagina-ancha {
     top: 0;
     z-index: 10;
     backdrop-filter: blur(6px);
-}
-
-.marca-nav {
-    font-weight: 700;
-    font-size: 18px;
 }
 
 #nav-sesion {
@@ -281,13 +276,59 @@ body.pagina-ancha {
     .barra-nav {
         padding: 10px 14px;
     }
-    .marca-nav {
-        font-size: 15px;
-    }
     .contenedor-principal {
         padding: 20px 14px;
     }
     .pagina-ancha .login-card {
         padding: 50px 24px;
     }
+}
+
+
+/* =====================================================
+   CONTRASEÑAS: botón mostrar/ocultar y recuperación
+   ===================================================== */
+
+.campo-password {
+    position: relative;
+}
+
+.campo-password input {
+    padding-right: 78px;   /* espacio para el botón */
+}
+
+.btn-ojo {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: auto;
+    margin: 0;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent !important;
+    color: #333333 !important;
+    border-radius: 4px;
+}
+
+.btn-ojo:hover {
+    background: #e5e5e5 !important;
+}
+
+.enlace-olvido {
+    margin: -8px 0 16px;
+    text-align: right;
+    font-size: 12px;
+}
+
+/* Mensajes de error (rojo) y de éxito (verde, con la clase .ok) */
+.mensaje {
+    color: #f87171;
+    font-size: 13px;
+    min-height: 1em;
+}
+
+.mensaje.ok {
+    color: #4ade80;
 }
