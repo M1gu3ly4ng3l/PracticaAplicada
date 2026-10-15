@@ -109,9 +109,6 @@ a:hover {
 }
 
 
-/* =====================================================
-   PÁGINAS CON BARRA DE NAVEGACIÓN (reportes / reportar)
-   ===================================================== */
 
 body.pagina-ancha {
     display: flex;
@@ -122,7 +119,6 @@ body.pagina-ancha {
     min-height: 100vh;
 }
 
-/* ----- Barra superior ----- */
 .barra-nav {
     display: flex;
     justify-content: flex-end;        /* botón de sesión en la esquina derecha */
