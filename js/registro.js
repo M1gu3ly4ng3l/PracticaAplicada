@@ -26,13 +26,12 @@ form.addEventListener('submit', async (e) => {
   boton.disabled = true;
   boton.textContent = 'Creando cuenta...';
 
-  // nombres, apellidos y fecha_nacimiento quedan guardados en los
-  // metadatos del usuario (auth.users.user_metadata), accesibles luego
-  // como session.user.user_metadata.nombres, etc.
+  // nombres, apellidos y fecha de nacimiento
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: `${window.location.origin}/index.html`,
       data: {
         nombres,
         apellidos,
@@ -49,9 +48,6 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  // Por defecto Supabase pide confirmar el correo antes de poder iniciar sesión.
-  // (Esto se puede desactivar en Authentication > Providers > Email si quieres
-  // que el registro quede activo de inmediato).
   mensaje.style.color = '#16a34a';
   mensaje.textContent = 'Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.';
   form.reset();
