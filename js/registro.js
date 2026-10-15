@@ -7,6 +7,18 @@ const campoFechaNacimiento = document.getElementById('fecha_nacimiento');
 // No dejar elegir una fecha de nacimiento futura
 campoFechaNacimiento.max = new Date().toISOString().split('T')[0];
 
+// Reglas de contraseña (6 caracteres, un número y un caracater especial)
+const SIMBOLOS = /[!@#$%^&*()_+\-=\[\]{};':"\\|<>?,./`~]/;
+
+function revisarPassword(password) {
+  const faltan = [];
+  if (password.length < 6) faltan.push('al menos 6 caracteres');
+  if (!/[A-Z]/.test(password)) faltan.push('una mayúscula');
+  if (!/[0-9]/.test(password)) faltan.push('un número');
+  if (!SIMBOLOS.test(password)) faltan.push('un carácter especial (por ejemplo ! @ # $ %)');
+  return faltan;
+}
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   mensaje.textContent = '';
@@ -17,8 +29,9 @@ form.addEventListener('submit', async (e) => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
 
-  if (password.length < 6) {
-    mensaje.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+  const faltan = revisarPassword(password);
+  if (faltan.length) {
+    mensaje.textContent = 'La contraseña debe tener ' + faltan.join(', ') + '.';
     return;
   }
 
@@ -26,7 +39,6 @@ form.addEventListener('submit', async (e) => {
   boton.disabled = true;
   boton.textContent = 'Creando cuenta...';
 
-  // nombres, apellidos y fecha de nacimiento
   const { error } = await supabase.auth.signUp({
     email,
     password,
