@@ -1,6 +1,6 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #29292934, #2b0101f8);
+    background: linear-gradient(135deg, #333333, #2e0101f8);
     margin: 0;
     display: flex;
     justify-content: center;
@@ -9,10 +9,10 @@ body {
 }
 
 .login-card {
-    background-color: #ffffff;
+    background-color: #2c2a2a;
     padding: 110px 90px;
     border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(5, 235, 43, 0.1);
+    box-shadow: 0 4px 15px rgba(243, 243, 243, 0.1);
     width: 100%;
     max-width: 360px;
 } 
@@ -42,7 +42,7 @@ h2 {
 .subtitulo {
     margin-top: 12px;
     margin-bottom: 35px;
-    color: #ffffff;
+    color: #fdfeff;
     font-size: 14px;
 }
 
@@ -53,7 +53,7 @@ h2 {
 label {
     display: block;
     font-size: 10px;
-    color: #ffffff;
+    color: #f7f8f7;
     margin-bottom: 6px;
     font-weight: 600;
 }
@@ -75,7 +75,7 @@ input:focus {
 button {
     width: 100%;
     background-color: #960018 !important; 
-    color: white !important;
+    color: #ffffff !important;
     padding: 12px;
     border: none;
     border-radius: 6px;
@@ -89,3 +89,20 @@ button:hover {
     background-color: #670010 !important;
     }
     
+body {
+    color: #ffffff; 
+
+a {
+    color: #38bdf8; 
+    text-decoration: none;
+}
+
+a:hover {
+    color: #7dd3fc; 
+    text-decoration: underline;
+}
+.ayuda-campo {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #64748b;
+}"
