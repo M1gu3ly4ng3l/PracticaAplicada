@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { iniciarNotificaciones } from './notificaciones.js';
 
 // Rellena la barra de navegación según si hay sesión o no.
 export async function pintarNav() {
@@ -35,6 +36,7 @@ export async function pintarNav() {
   } else {
     contenedor.innerHTML = `<a href="index.html" class="btn-nav">Iniciar sesión</a>`;
   }
+  iniciarNotificaciones(contenedor, session);
 }
 
 // Redirige al login si no hay sesión activa.

@@ -66,3 +66,4 @@ function tarjetaReporte(reporte) {
 }
 
 cargarReportes();
+window.addEventListener('reporte-nuevo', cargarReportes);
