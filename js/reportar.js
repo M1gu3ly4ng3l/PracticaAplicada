@@ -6,6 +6,78 @@ const sesion = await exigirSesion();
 
 const form = document.getElementById('form-reportar');
 const mensaje = document.getElementById('mensaje');
+const campoFecha = document.getElementById('fecha_hora');
+
+const MENSAJE_FECHA_FUTURA = 'La fecha y hora del hecho no pueden ser futuras.';
+
+// Formato que entiende <input type="datetime-local"> (hora local, sin segundos)
+function aFormatoLocal(fecha) {
+  const desfase = fecha.getTimezoneOffset() * 60000;
+  return new Date(fecha.getTime() - desfase).toISOString().slice(0, 16);
+}
+
+// El máximo permitido es "ahora"; se refresca para que no se quede desactualizado
+function actualizarMaximo() {
+  campoFecha.max = aFormatoLocal(new Date());
+}
+
+function fechaEsFutura() {
+  return campoFecha.value !== '' && new Date(campoFecha.value) > new Date();
+}
+
+function validarFecha() {
+  actualizarMaximo();
+  campoFecha.setCustomValidity(fechaEsFutura() ? MENSAJE_FECHA_FUTURA : '');
+}
+
+actualizarMaximo();
+setInterval(actualizarMaximo, 30000);
+campoFecha.addEventListener('input', validarFecha);
+campoFecha.addEventListener('change', validarFecha);
+// Si el navegador bloquea el envío por fecha inválida, mostramos el aviso en el formulario
+campoFecha.addEventListener('invalid', () => {
+  if (fechaEsFutura()) mensaje.textContent = MENSAJE_FECHA_FUTURA;
+});
+
+// Modo edición: reportar.html?editar=<id>
+const idEdicion = new URLSearchParams(window.location.search).get('editar');
+let reporteEditado = null;
+
+function rutaDeImagen(url) {
+  const marca = '/reportes-imagenes/';
+  const i = url.indexOf(marca);
+  return i === -1 ? null : decodeURIComponent(url.slice(i + marca.length).split('?')[0]);
+}
+
+if (sesion && idEdicion) {
+  const { data, error } = await supabase
+    .from('reportes')
+    .select('*')
+    .eq('id', idEdicion)
+    .eq('user_id', sesion.user.id)
+    .maybeSingle();
+
+  if (error || !data) {
+    alert('No se encontró el reporte o no tienes permiso para editarlo.');
+    window.location.href = 'reportes.html';
+  } else {
+    reporteEditado = data;
+    document.querySelector('h2').textContent = 'Editar Reporte';
+    document.querySelector('.subtitulo').textContent = 'Modifica los datos de tu reporte';
+    document.title = 'Reporte de Catástrofes - Editar reporte';
+    document.getElementById('tipo').value = data.tipo;
+    document.getElementById('lugar').value = data.lugar;
+    campoFecha.value = aFormatoLocal(new Date(data.fecha_hora));
+    form.querySelector('button').textContent = 'Guardar cambios';
+
+    if (data.imagen_url) {
+      const ayuda = document.createElement('p');
+      ayuda.className = 'ayuda-campo';
+      ayuda.textContent = 'Ya hay una imagen. Elige otra solo si quieres reemplazarla.';
+      document.getElementById('imagen').insertAdjacentElement('afterend', ayuda);
+    }
+  }
+}
 
 if (sesion) {
   form.addEventListener('submit', async (e) => {
@@ -17,12 +89,17 @@ if (sesion) {
     const fechaHora = document.getElementById('fecha_hora').value; // datetime-local
     const archivoImagen = document.getElementById('imagen').files[0];
 
+    if (fechaEsFutura()) {
+      mensaje.textContent = MENSAJE_FECHA_FUTURA;
+      return;
+    }
+
     const boton = form.querySelector('button');
     boton.disabled = true;
-    boton.textContent = 'Enviando...';
+    boton.textContent = reporteEditado ? 'Guardando...' : 'Enviando...';
 
     try {
-      let imagenUrl = null;
+      let imagenUrl = reporteEditado?.imagen_url ?? null;
 
       // La imagen es opcional
       if (archivoImagen) {
@@ -42,21 +119,44 @@ if (sesion) {
         imagenUrl = urlPublica.publicUrl;
       }
 
-      const { error: errorInsert } = await supabase.from('reportes').insert({
-        user_id: sesion.user.id,
-        tipo,
-        lugar,
-        fecha_hora: new Date(fechaHora).toISOString(),
-        imagen_url: imagenUrl,
-      });
+      if (reporteEditado) {
+        const { data: actualizados, error: errorUpdate } = await supabase
+          .from('reportes')
+          .update({
+            tipo,
+            lugar,
+            fecha_hora: new Date(fechaHora).toISOString(),
+            imagen_url: imagenUrl,
+          })
+          .eq('id', reporteEditado.id)
+          .eq('user_id', sesion.user.id)
+          .select();
 
-      if (errorInsert) throw errorInsert;
+        if (errorUpdate) throw errorUpdate;
+        if (!actualizados.length) throw new Error('No tienes permiso para editar este reporte.');
+
+        const anterior = reporteEditado.imagen_url;
+        if (archivoImagen && anterior && anterior !== imagenUrl) {
+          const ruta = rutaDeImagen(anterior);
+          if (ruta) await supabase.storage.from('reportes-imagenes').remove([ruta]);
+        }
+      } else {
+        const { error: errorInsert } = await supabase.from('reportes').insert({
+          user_id: sesion.user.id,
+          tipo,
+          lugar,
+          fecha_hora: new Date(fechaHora).toISOString(),
+          imagen_url: imagenUrl,
+        });
+
+        if (errorInsert) throw errorInsert;
+      }
 
       window.location.href = 'reportes.html';
     } catch (error) {
-      mensaje.textContent = 'No se pudo enviar el reporte: ' + error.message;
+      mensaje.textContent = (reporteEditado ? 'No se pudo guardar el reporte: ' : 'No se pudo enviar el reporte: ') + error.message;
       boton.disabled = false;
-      boton.textContent = 'Enviar reporte';
+      boton.textContent = reporteEditado ? 'Guardar cambios' : 'Enviar reporte';
     }
   });
 }
