@@ -1,9 +1,8 @@
 import { supabase } from './supabaseClient.js';
 import { pintarNav } from './nav.js';
-import { iniciarMapa, pintarMarcadores } from './mapa.js';
+import { iniciarMapa, pintarMarcadores, enfocarReporte, ajustarTamano } from './mapa.js';
 
 pintarNav();
-iniciarMapa(document.getElementById('mapa'));
 
 const { data: { session } } = await supabase.auth.getSession();
 const MOTIVOS_DENUNCIA = ['Información falsa', 'Contenido inapropiado', 'Reporte duplicado', 'Otro'];
@@ -24,6 +23,33 @@ const ETIQUETAS_TIPO = {
 };
 
 const contenedor = document.getElementById('lista-reportes');
+const cajaMapa = document.getElementById('mapa');
+const botonMapa = document.getElementById('btn-mapa');
+let mapaIniciado = false;
+
+// El mapa empieza oculto: solo se descarga y se dibuja cuando se abre por primera vez
+function mostrarMapa(mostrar) {
+  cajaMapa.hidden = !mostrar;
+  botonMapa.setAttribute('aria-expanded', String(mostrar));
+  botonMapa.textContent = mostrar ? '🗺️ Ocultar mapa' : '🗺️ Mostrar mapa';
+  if (!mostrar) return;
+
+  if (!mapaIniciado) {
+    mapaIniciado = true;
+    iniciarMapa(cajaMapa);
+  } else {
+    ajustarTamano();
+  }
+}
+
+botonMapa.addEventListener('click', () => mostrarMapa(cajaMapa.hidden));
+
+// Abre el mapa, baja hasta él y acerca la vista al reporte
+async function ubicarEnMapa(id) {
+  mostrarMapa(true);
+  cajaMapa.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  await enfocarReporte(id);
+}
 
 async function cargarReportes() {
   contenedor.innerHTML = '<p class="estado">Cargando reportes...</p>';
@@ -87,20 +113,25 @@ function tarjetaReporte(reporte) {
     ? `<img src="${escapar(reporte.imagen_url)}" alt="Imagen del reporte" class="imagen-reporte" loading="lazy" onerror="this.remove()">`
     : 'Sin imagen';
 
-  let acciones = '';
+  // Solo los reportes con coordenadas pueden ubicarse en el mapa
+  const tieneUbicacion = reporte.lat !== null && reporte.lng !== null;
+
+  let botones = tieneUbicacion
+    ? `<button type="button" class="btn-accion" data-accion="ubicar" data-id="${escapar(reporte.id)}">📍 Ubicar en el mapa</button>`
+    : '';
+
   if (session && reporte.user_id === session.user.id) {
-    acciones = `
-      <div class="acciones-reporte">
+    botones += `
         <button type="button" class="btn-accion" data-accion="editar" data-id="${escapar(reporte.id)}">Editar</button>
-        <button type="button" class="btn-accion btn-peligro" data-accion="eliminar" data-id="${escapar(reporte.id)}">Eliminar</button>
-      </div>`;
+        <button type="button" class="btn-accion btn-peligro" data-accion="eliminar" data-id="${escapar(reporte.id)}">Eliminar</button>`;
   } else if (session) {
-    acciones = denunciados.has(reporte.id)
-      ? `<div class="acciones-reporte"><span class="denuncia-hecha">🚩 Ya denunciaste este reporte</span></div>`
-      : `<div class="acciones-reporte">
-           <button type="button" class="btn-accion" data-accion="denunciar" data-id="${escapar(reporte.id)}">🚩 Denunciar</button>
-         </div>`;
+    botones += denunciados.has(reporte.id)
+      ? `<span class="denuncia-hecha">🚩 Ya denunciaste este reporte</span>`
+      : `<button type="button" class="btn-accion" data-accion="denunciar" data-id="${escapar(reporte.id)}">🚩 Denunciar</button>`;
   }
+
+  const acciones = botones ? `<div class="acciones-reporte">${botones}</div>` : '';
+  const avisoUbicacion = tieneUbicacion ? '' : '<p class="sin-ubicacion">📍 Sin ubicación en el mapa</p>';
 
   return `
     <article class="tarjeta-reporte">
@@ -109,6 +140,7 @@ function tarjetaReporte(reporte) {
         <span class="etiqueta-tipo">${escapar(ETIQUETAS_TIPO[reporte.tipo] ?? reporte.tipo)}</span>
         <p class="lugar-reporte">${escapar(reporte.lugar)}</p>
         <p class="fecha-reporte">${fecha}</p>
+        ${avisoUbicacion}
         ${acciones}
       </div>
     </article>
@@ -194,9 +226,15 @@ function abrirDialogoDenuncia(id) {
 
 contenedor.addEventListener('click', (e) => {
   const boton = e.target.closest('button[data-accion]');
-  if (!boton || !session) return;
+  if (!boton) return;
 
   const { accion, id } = boton.dataset;
+  if (accion === 'ubicar') {
+    ubicarEnMapa(id); // no requiere sesión
+    return;
+  }
+  if (!session) return;
+
   if (accion === 'editar') window.location.href = `reportar.html?editar=${encodeURIComponent(id)}`;
   if (accion === 'eliminar') eliminarReporte(id, boton);
   if (accion === 'denunciar') abrirDialogoDenuncia(id);

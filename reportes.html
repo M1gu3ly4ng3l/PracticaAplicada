@@ -17,7 +17,10 @@
         <h2>Reportes recientes</h2>
         <p class="subtitulo">Lo que la comunidad ha reportado en las últimas 2 horas</p>
 
-        <div id="mapa" class="mapa-reportes"></div>
+        <div class="barra-mapa">
+            <button type="button" id="btn-mapa" class="btn-accion" aria-expanded="false" aria-controls="mapa">🗺️ Mostrar mapa</button>
+        </div>
+        <div id="mapa" class="mapa-reportes" hidden></div>
 
         <div id="lista-reportes" class="lista-reportes"></div>
     </main>

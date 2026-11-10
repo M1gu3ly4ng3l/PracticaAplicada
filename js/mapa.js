@@ -10,6 +10,7 @@ const URL_NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 const CENTRO_COLOMBIA = [4.5709, -74.2973];
 const ZOOM_COLOMBIA = 5;
 const ZOOM_UN_REPORTE = 14;
+const ZOOM_ENFOQUE = 16;
 
 // Un color y un ícono por tipo de catástrofe (mismos tipos que la lista de reportes)
 const TIPOS = {
@@ -26,6 +27,8 @@ let L = null;
 let mapa = null;
 let capaMarcadores = null;
 let yaAjustado = false;
+let reportesActuales = []; // la lista más reciente, por si el mapa todavía no se ha abierto
+const marcadoresPorId = new Map();
 
 function cargarEstilos() {
   return new Promise((resolve, reject) => {
@@ -60,6 +63,7 @@ export function iniciarMapa(elemento) {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
     }).addTo(mapa);
     capaMarcadores = L.layerGroup().addTo(mapa);
+    dibujarMarcadores();
   })();
 
   listo.catch((error) => {
@@ -109,21 +113,15 @@ function contenidoInfo(reporte) {
   return caja;
 }
 
-// Reemplaza los marcadores por los de la lista de reportes recibida
-export async function pintarMarcadores(reportes) {
-  try {
-    await listo;
-  } catch {
-    return; // el mensaje de error ya se mostró en iniciarMapa
-  }
-
+function dibujarMarcadores() {
   capaMarcadores.clearLayers();
+  marcadoresPorId.clear();
   mapa.closePopup();
 
   const puntos = [];
 
   // Los reportes sin coordenadas (lat/lng nulos) aparecen en la lista pero no en el mapa
-  reportes
+  reportesActuales
     .filter((r) => r.lat !== null && r.lng !== null)
     .forEach((reporte) => {
       const posicion = [reporte.lat, reporte.lng];
@@ -139,6 +137,7 @@ export async function pintarMarcadores(reportes) {
       });
       marcador.bindPopup(contenidoInfo(reporte));
       marcador.addTo(capaMarcadores);
+      marcadoresPorId.set(reporte.id, marcador);
       puntos.push(posicion);
     });
 
@@ -153,12 +152,63 @@ export async function pintarMarcadores(reportes) {
   }
 }
 
-// Convierte un lugar escrito (barrio, municipio o dirección) en coordenadas.
-// Devuelve null si no lo encuentra o si el servicio no responde: el reporte se guarda igual.
-export async function geocodificar(lugar) {
+// Guarda la lista de reportes y, si el mapa ya está abierto, actualiza los marcadores
+export async function pintarMarcadores(reportes) {
+  reportesActuales = reportes;
+  if (!listo) return; // el mapa se dibuja cuando se abra por primera vez
+
+  try {
+    await listo;
+  } catch {
+    return; // el mensaje de error ya se mostró en iniciarMapa
+  }
+  dibujarMarcadores();
+}
+
+// Hay que llamarla cuando el mapa pasa de oculto a visible, para que Leaflet recalcule su tamaño
+export async function ajustarTamano() {
+  if (!listo) return;
+  try {
+    await listo;
+  } catch {
+    return;
+  }
+  mapa.invalidateSize();
+}
+
+// Acerca el mapa al marcador de un reporte y abre su ventana de información
+export async function enfocarReporte(id) {
+  if (!listo) return false;
+  try {
+    await listo;
+  } catch {
+    return false;
+  }
+
+  mapa.invalidateSize();
+  const marcador = marcadoresPorId.get(id);
+  if (!marcador) return false;
+
+  mapa.setView(marcador.getLatLng(), ZOOM_ENFOQUE);
+  marcador.openPopup();
+  return true;
+}
+
+const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Del texto más específico al más general, sin quedarse solo con la ciudad:
+// "Calle 72 #10-34, Chapinero, Bogotá" -> también "Chapinero, Bogotá"
+function variantesDeLugar(lugar) {
+  const partes = lugar.split(',').map((p) => p.trim()).filter(Boolean);
+  const variantes = [partes.join(', ')];
+  for (let i = 1; partes.length - i >= 2; i++) variantes.push(partes.slice(i).join(', '));
+  return variantes;
+}
+
+async function buscarEnNominatim(texto) {
   try {
     const params = new URLSearchParams({
-      q: lugar,
+      q: texto,
       format: 'jsonv2',
       limit: '1',
       countrycodes: 'co',
@@ -176,4 +226,16 @@ export async function geocodificar(lugar) {
   } catch {
     return null;
   }
+}
+
+// Convierte un lugar escrito (barrio, municipio o dirección) en coordenadas.
+// Devuelve null si no lo encuentra o si el servicio no responde.
+export async function geocodificar(lugar) {
+  const variantes = variantesDeLugar(lugar);
+  for (let i = 0; i < variantes.length; i++) {
+    if (i > 0) await esperar(1100); // Nominatim permite como máximo 1 consulta por segundo
+    const coordenadas = await buscarEnNominatim(variantes[i]);
+    if (coordenadas) return coordenadas;
+  }
+  return null;
 }

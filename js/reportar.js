@@ -127,6 +127,17 @@ if (sesion) {
         const coordenadas = await geocodificar(lugar);
         lat = coordenadas?.lat ?? null;
         lng = coordenadas?.lng ?? null;
+
+        // Si no se encontró el lugar, se avisa antes de guardar un reporte que no saldrá en el mapa
+        const lugarNuevo = !reporteEditado || lugar !== reporteEditado.lugar;
+        if (lat === null && lugarNuevo && !confirm(
+          `No pudimos ubicar "${lugar}" en el mapa. ¿Guardar el reporte igual, sin marcador?\n\n` +
+          'Si prefieres corregirlo, escribe el barrio y la ciudad, por ejemplo: Chapinero, Bogotá.'
+        )) {
+          boton.disabled = false;
+          boton.textContent = reporteEditado ? 'Guardar cambios' : 'Enviar reporte';
+          return;
+        }
       }
 
       if (reporteEditado) {
