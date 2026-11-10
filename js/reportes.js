@@ -1,11 +1,18 @@
 import { supabase } from './supabaseClient.js';
 import { pintarNav } from './nav.js';
+import { iniciarMapa, pintarMarcadores } from './mapa.js';
 
 pintarNav();
+iniciarMapa(document.getElementById('mapa'));
 
 const { data: { session } } = await supabase.auth.getSession();
 const MOTIVOS_DENUNCIA = ['Información falsa', 'Contenido inapropiado', 'Reporte duplicado', 'Otro'];
 const denunciados = new Set(); // reportes que este usuario ya denunció
+
+// Los reportes se eliminan solos 2 horas después de publicarse (lo hace Supabase;
+// aquí además se ocultan al instante para que no dependan de la hora de la limpieza)
+const VIDA_REPORTE_MS = 2 * 60 * 60 * 1000;
+let temporizadorCaducidad = null;
 
 const ETIQUETAS_TIPO = {
   lluvia: '🌧️ Lluvia',
@@ -24,12 +31,16 @@ async function cargarReportes() {
   const { data: reportes, error } = await supabase
     .from('reportes')
     .select('*')
+    .gte('created_at', new Date(Date.now() - VIDA_REPORTE_MS).toISOString())
     .order('created_at', { ascending: false });
 
   if (error) {
     contenedor.innerHTML = `<p class="estado">No se pudieron cargar los reportes.</p>`;
     return;
   }
+
+  pintarMarcadores(reportes);
+  programarCaducidad(reportes);
 
   if (!reportes.length) {
     contenedor.innerHTML = `<p class="estado">Todavía no hay reportes. Sé el primero en reportar.</p>`;
@@ -46,6 +57,16 @@ async function cargarReportes() {
   }
 
   contenedor.innerHTML = reportes.map(tarjetaReporte).join('');
+}
+
+// Vuelve a cargar la lista justo cuando venza el reporte más antiguo que se está mostrando
+function programarCaducidad(reportes) {
+  clearTimeout(temporizadorCaducidad);
+  if (!reportes.length) return;
+
+  const masAntiguo = Math.min(...reportes.map((r) => new Date(r.created_at).getTime()));
+  const espera = masAntiguo + VIDA_REPORTE_MS - Date.now() + 1000;
+  temporizadorCaducidad = setTimeout(cargarReportes, Math.max(espera, 1000));
 }
 
 // Evita que texto escrito por usuarios se interprete como HTML

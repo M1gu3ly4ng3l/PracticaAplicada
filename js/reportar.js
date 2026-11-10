@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient.js';
 import { pintarNav, exigirSesion } from './nav.js';
+import { geocodificar } from './mapa.js';
 
 pintarNav();
 const sesion = await exigirSesion();
@@ -119,12 +120,23 @@ if (sesion) {
         imagenUrl = urlPublica.publicUrl;
       }
 
+      // Ubica el lugar en el mapa; si no se encuentra, el reporte se guarda igual (sin marcador)
+      let lat = reporteEditado?.lat ?? null;
+      let lng = reporteEditado?.lng ?? null;
+      if (!reporteEditado || lugar !== reporteEditado.lugar || lat === null) {
+        const coordenadas = await geocodificar(lugar);
+        lat = coordenadas?.lat ?? null;
+        lng = coordenadas?.lng ?? null;
+      }
+
       if (reporteEditado) {
         const { data: actualizados, error: errorUpdate } = await supabase
           .from('reportes')
           .update({
             tipo,
             lugar,
+            lat,
+            lng,
             fecha_hora: new Date(fechaHora).toISOString(),
             imagen_url: imagenUrl,
           })
@@ -145,6 +157,8 @@ if (sesion) {
           user_id: sesion.user.id,
           tipo,
           lugar,
+          lat,
+          lng,
           fecha_hora: new Date(fechaHora).toISOString(),
           imagen_url: imagenUrl,
         });
